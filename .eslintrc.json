@@ -1,0 +1,24 @@
+{
+  "extends": "eslint:recommended",
+  "env": {
+    "node": true,
+    "es6": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2019
+  },
+  "rules": {
+    "indent": ["warn", 2, { "SwitchCase": 1 }],
+    "one-var": ["error", "never"],
+    "camelcase": "warn",
+    "comma-spacing": "warn",
+    "semi": ["error", "always"],
+    "eqeqeq": "error",
+    "no-eq-null": "error",
+    "no-alert": "warn",
+    "no-underscore-dangle": "off",
+    "import/no-unresolved": "off",
+    "import/extensions": "off",
+    "class-methods-use-this": "off"
+  }
+}
