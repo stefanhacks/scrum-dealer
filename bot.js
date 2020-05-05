@@ -3,8 +3,8 @@ const { commandPrefix, betIndicator, token } = require('./config.json');
 const client = new Discord.Client();
 
 // #region Helper F's
-const getNick = (id, members) => {
-  const user = members.find(u => u.user.id === id);
+const getNick = (id, channel) => {
+  const user = channel.members.find(u => u.user.id === id);
   return (user.nickname === undefined || user.nickname === null) ? user.user.username : user.nickname;
 };
 
@@ -13,7 +13,7 @@ function addMember(user, currentBets, idsPlaying, channel) {
     idsPlaying.push(user.id);
     currentBets[user.id] = null;
 
-    channel.send('Added ' + getNick(user.id, channel.members) + ' to planning members.');
+    channel.send('Added ' + getNick(user.id, channel) + ' to planning members.');
   }
 }
 
@@ -23,22 +23,12 @@ function removeMember(user, currentBets, idsPlaying, channel) {
     idsPlaying.splice(index, 1);
     delete currentBets[user.id];
         
-    channel.send('Removed ' + getNick(user.id, channel.members) + ' to planning members.');
-  }
-}
-
-function readyBets(channel, betting) {
-  if (betting === false) {
-    channel.send('Ready to receive bets, do so by sending `#<points>` to bet and `!clear` to remove your bet.\nChannel will be kept clean from messages, use `!deal` to end round.');
-    return true;
-  } else {
-    channel.send('Already listening to bets.');
-    return false;
+    channel.send('Removed ' + getNick(user.id, channel) + ' to planning members.');
   }
 }
 
 function listSprintMembers(idsPlaying, channel) {
-  const list = idsPlaying.map((memberID) => getNick(memberID, channel.members));
+  const list = idsPlaying.map((memberID) => getNick(memberID, channel));
   if (list.length > 0) {
     channel.send('Current users in the Sprint: ' + list.join(', '));
     return;
@@ -53,14 +43,14 @@ function makeAuthorBet(authorID, currentBets, points, channel) {
     currentBets[authorID] = points;
 
     if (currentBet === null)
-      channel.send('> ' + getNick(authorID, channel.members) + ' has made a bet.');
+      channel.send('> ' + getNick(authorID, channel) + ' has made a bet.');
   }
 }
 
 function clearAuthorBet(authorID, currentBets, channel) {
   const currentBet = currentBets[authorID];
   if (currentBet !== null) {
-    channel.send('> ' + getNick(authorID, channel.members) + ' has cleared his bet.');
+    channel.send('> ' + getNick(authorID, channel) + ' has cleared his bet.');
     currentBets[authorID] = null;
   }
 }
@@ -70,7 +60,7 @@ function roundUpBets(currentBets, idsPlaying, channel, arg) {
   if (betIds.length > 0) {
     const miss = [];
     betIds.forEach((id) => {
-      if (currentBets[id] === null) miss.push(getNick(id, channel.members));
+      if (currentBets[id] === null) miss.push(getNick(id, channel));
     });
       
     if (miss.length > 0) {
@@ -93,7 +83,7 @@ function roundUpBets(currentBets, idsPlaying, channel, arg) {
     let roundedMsg = rounded !== avg ? ' ≈ `' + rounded + '`' : '';
 
     const betsText = betIds.sort().reduce((msg, id) => {
-      const user = getNick(id, channel.members);
+      const user = getNick(id, channel);
       let valMsg;
       if(currentBets[id] === null) valMsg = ' did not bet.';
       else valMsg = ' bet `' + currentBets[id] + '` points.';
@@ -128,8 +118,9 @@ client.on('message', message => {
   // Avoids parsing it's own messages.
   if (message.author.id === client.user.id) return;
 
-  const content = message.content;
+  const { channel, content, mentions } = message;
   const commandType = content.substring(0, 1);
+  const authorID = message.author.id;
 
   if (commandType === commandPrefix) {
     var args = content.substring(1).split(' ');
@@ -137,9 +128,7 @@ client.on('message', message => {
 
     if (planned === false) {
       if (command === 'sprint') {
-        const { roles } = message.mentions;
-        const { id: authorID, channel } = message;
-
+        const { roles } = mentions;
         if (roles.size === 0) {
           channel.send('Please mention the role that will be part of this sprint.');
           return;
@@ -157,34 +146,40 @@ client.on('message', message => {
 
     switch (command) {
       case 'add': 
-        message.mentions.users.forEach((user) => addMember(user, currentBets, idsPlaying, message.channel));
+        mentions.users.forEach((user) => addMember(user, currentBets, idsPlaying, channel));
         break;
           
       case 'remove':
-        message.mentions.users.forEach((user) => removeMember(user, currentBets, idsPlaying, message.channel));
+        mentions.users.forEach((user) => removeMember(user, currentBets, idsPlaying, channel));
         break;
       
       case 'bet':
-        betting = readyBets(message.channel, betting);
+        if (betting === false) {
+          channel.send('Ready to receive bets, do so by sending `#<points>` to bet and `!clear` to remove your bet.\nChannel will be kept clean from messages, use `!deal` to end round.');
+          betting = true;
+        } else {
+          channel.send('Already listening to bets.');
+        }
+
         break;
 
       case 'list':
-        listSprintMembers(idsPlaying, message.channel);
+        listSprintMembers(idsPlaying, channel);
         break;
           
       case 'deal': 
         if (betting === true) {
-          betting = roundUpBets(currentBets, idsPlaying, message.channel, args[1]);
+          betting = roundUpBets(currentBets, idsPlaying, channel, args[1]);
         }
         break;
 
       case 'clear':
-        clearAuthorBet(message.author.id, currentBets, message.channel);
+        clearAuthorBet(authorID, currentBets, channel);
         break;
 
       case 'finish': 
-        if (message.author.id !== plannerID && args[1] === '-f') {
-          message.channel.send('Sorry, either pass `-f` to force it or request ' + getNick(plannerID, idsPlaying) + ' to do this for you.');
+        if (authorID !== plannerID && args[1] !== '-f') {
+          channel.send('Sorry, either pass `-f` to force it or request ' + getNick(plannerID, channel) + ' to do this for you.');
           return;
         }
         
@@ -196,7 +191,7 @@ client.on('message', message => {
   } else if (betting === true && planned === true) {
     if (commandType === betIndicator) {
       var points = parseInt(content.substring(1).split(' '), 10);
-      makeAuthorBet(message.author.id, currentBets, points, message.channel);
+      makeAuthorBet(authorID, currentBets, points, channel);
     }
 
     message.delete();
