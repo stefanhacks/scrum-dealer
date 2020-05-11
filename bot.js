@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const { commandPrefix, betIndicator, token } = require('./config.json');
+const { commandPrefix, token } = require('./config.json');
 const client = new Discord.Client();
 
 // #region Helper F's
@@ -44,6 +44,8 @@ function makeAuthorBet(authorID, currentBets, points, channel) {
 
     if (currentBet === null)
       channel.send('> ' + getNick(authorID, channel) + ' has made a bet.');
+  } else {
+    channel.send('Sorry ' + getNick(authorID, channel) + ', could you try that again?');
   }
 }
 
@@ -77,7 +79,7 @@ function roundUpBets(currentBets, idsPlaying, channel, arg) {
 
     let total = betIds.reduce((sum, next) => sum += currentBets[next], 0);
     let avg = total / (betIds.length - miss.length);
-    let rounded = Math.round(avg);
+    let rounded = Math.floor(avg);
 
     let averageMsg = '> - \n> Average: `' + avg + '`';
     let roundedMsg = rounded !== avg ? ' ≈ `' + rounded + '`' : '';
@@ -139,7 +141,7 @@ client.on('message', message => {
         plannerID = authorID;
         planned = true;
 
-        channel.send('Planning sprint with provided role. Use `!bet` to start betting process, `!add` to insert additional users into the sprint and `!remove` to do the opposite.');
+        channel.send(`Planning sprint with provided role. Use \`${commandPrefix}bet\` to start betting process, \`${commandPrefix}add\` to insert additional users into the sprint and \`${commandPrefix}remove\` to do the opposite.`);
       }
       return;
     }
@@ -155,7 +157,7 @@ client.on('message', message => {
       
       case 'bet':
         if (betting === false) {
-          channel.send('Ready to receive bets, do so by sending `#<points>` to bet and `!clear` to remove your bet.\nChannel will be kept clean from messages, use `!deal` to end round.');
+          channel.send(`Ready to receive bets, do so by sending a \`/spoiler <points>\` to bet and \`${commandPrefix}clear\` to remove your bet.\nChannel will be kept clean from messages, use \`${commandPrefix}deal\` to end round.`);
           betting = true;
         } else {
           channel.send('Already listening to bets.');
@@ -189,8 +191,11 @@ client.on('message', message => {
         message.channel.send('Wrapping up.\nGood week everyone! :robot:');
     }
   } else if (betting === true && planned === true) {
-    if (commandType === betIndicator) {
-      var points = parseInt(content.substring(1).split(' '), 10);
+    const start = content.slice(0, 2);
+    const end = content.slice(-2);
+
+    if (start === '||' && end === '||') {
+      var points = parseInt(content.replace(/\|/g, ''));
       makeAuthorBet(authorID, currentBets, points, channel);
     }
 
