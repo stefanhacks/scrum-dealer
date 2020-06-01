@@ -18,7 +18,7 @@ Shows all users that are in the plan.
 #### !bet
 Start recording bets from users with the next command. This also makes so the bot activelly deletes messages that are sent in the room.
 
-#### \#\<number\>
+#### /spoiler \<number\>
 Registers a bet on your name. The first time you do this, the bot will say that you did so. If you do it again before the round is over, your bet gets updated but nothing is shown.
 
 #### !clear
