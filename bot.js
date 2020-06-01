@@ -23,7 +23,7 @@ function removeMember(user, currentBets, idsPlaying, channel) {
     idsPlaying.splice(index, 1);
     delete currentBets[user.id];
         
-    channel.send('Removed ' + getNick(user.id, channel) + ' to planning members.');
+    channel.send('Removed ' + getNick(user.id, channel) + ' from planning members.');
   }
 }
 
@@ -79,7 +79,7 @@ function roundUpBets(currentBets, idsPlaying, channel, arg) {
 
     let total = betIds.reduce((sum, next) => sum += currentBets[next], 0);
     let avg = total / (betIds.length - miss.length);
-    let rounded = Math.floor(avg);
+    let rounded = -Math.round(-avg);
 
     let averageMsg = '> - \n> Average: `' + avg + '`';
     let roundedMsg = rounded !== avg ? ' ≈ `' + rounded + '`' : '';
@@ -88,7 +88,7 @@ function roundUpBets(currentBets, idsPlaying, channel, arg) {
       const user = getNick(id, channel);
       let valMsg;
       if(currentBets[id] === null) valMsg = ' did not bet.';
-      else valMsg = ' bet `' + currentBets[id] + '` points.';
+      else valMsg = ' bet `' + currentBets[id] + (currentBets[id] !== 1 ? '` points.' : '` point.');
       
       return msg + '> ' + user + valMsg + '\n';
     }, '');
