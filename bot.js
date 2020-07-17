@@ -77,23 +77,41 @@ function roundUpBets(currentBets, idsPlaying, channel, arg) {
       }
     }
 
-    let total = betIds.reduce((sum, next) => sum += currentBets[next], 0);
-    let avg = total / (betIds.length - miss.length);
-    let rounded = -Math.round(-avg);
-
-    let averageMsg = '> - \n> Average: `' + avg + '`';
-    let roundedMsg = rounded !== avg ? ' ≈ `' + rounded + '`' : '';
-
+    let allBets = [];
     const betsText = betIds.sort().reduce((msg, id) => {
       const user = getNick(id, channel);
       let valMsg;
-      if(currentBets[id] === null) valMsg = ' did not bet.';
-      else valMsg = ' bet `' + currentBets[id] + (currentBets[id] !== 1 ? '` points.' : '` point.');
+      let bet = currentBets[id];
+      if(bet === null) {
+        valMsg = ' did not bet.';
+      } else {
+        valMsg = ' bet `' + bet + (bet !== 1 ? '` points.' : '` point.');
+        allBets.push(bet);
+      } 
       
       return msg + '> ' + user + valMsg + '\n';
     }, '');
 
-    channel.send('*Bets are Over:*\n' + betsText + averageMsg + roundedMsg);
+    let cutMsg = '';
+    if (allBets.length > 4) {
+      allBets.sort();
+      allBets.pop();
+      allBets.shift();
+      
+      let cleanTotal = allBets.reduce((total, bet) => total + bet, 0);
+      let cleanAvg = cleanTotal / allBets.length;
+
+      cutMsg = '\n> Cleaned: `' + cleanAvg + '`';
+    }
+
+    let total = betIds.reduce((sum, next) => sum += currentBets[next], 0);
+    let avg = (total / (betIds.length - miss.length));
+    let rounded = -Math.round(-avg);
+
+    let averageMsg = '> - \n> Average: `' + avg + '`';
+    let roundedMsg = rounded !== avg ? ' ≈ `' + rounded + '`'  : '';
+
+    channel.send('*Bets are Over:*\n' + betsText + averageMsg + roundedMsg + cutMsg);
   } else {
     channel.send('No bets were made.');
   }
